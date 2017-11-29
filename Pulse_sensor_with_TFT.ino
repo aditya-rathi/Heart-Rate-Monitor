@@ -26,7 +26,7 @@ MCUFRIEND_kbv tft;
 #endif
 
 //  Variables
-int pulsePin = A6;                 // Pulse Sensor purple wire connected to analog pin 0
+int pulsePin = A5;                 // Pulse Sensor purple wire connected to analog pin 0
 
 
 
@@ -50,30 +50,51 @@ volatile int amp = 100;                   // used to hold amplitude of pulse wav
 volatile boolean firstBeat = true;        // used to seed rate array so we startup with reasonable BPM
 volatile boolean secondBeat = false;      // used to seed rate array so we startup with reasonable BPM
 
+//Motivation
+const char string_0[] PROGMEM = "I do not advocate violence, I advocate peace. And just when my opponent believes me, I punch him in the face.";   // "String 0" etc are strings to store - change to suit.
+const char string_1[] PROGMEM = "If plan A doesn't  work, the alphabet has 25 more letters - 204 if you're in Japan.";
+const char string_2[] PROGMEM = "Just remember if we get caught, you're deaf and I don't speak English";
+const char string_3[] PROGMEM = "Worrying is literally betting against yourself";
+const char string_4[] PROGMEM = "Nothing can dim the light which shines from within";
+const char string_5[] PROGMEM = "Cheese - Milk's leap towards immortality";
+const char string_6[] PROGMEM = "Sometimes, we survive by forgetting";
+const char string_7[] PROGMEM = "Am I the only one who calculates how much sleep I can get before going to bed";
+const char string_8[] PROGMEM = "That moment when you miss one step on the stairs, and you think you're about to die";
+const char string_9[] PROGMEM = "Whatever you do make sure you do it for you";
+// Then set up a table to refer to your strings.
+
+const char* const string_table[] PROGMEM = {string_0, string_1, string_2, string_3, string_4, string_5, string_6, string_7, string_8, string_9};
+
+char buffer[150];    // make sure this is large enough for the largest string it must hold
+int i = 0;
+unsigned long previousMillis;
+unsigned long currentMillis;
+
+
 void setup()
 {
-  pinMode(A5,OUTPUT);
-  digitalWrite(A5,HIGH);
   Serial.begin(115200);             // we agree to talk fast!
   interruptSetup();                 // sets up to read Pulse Sensor signal every 2mS
   // IF YOU ARE POWERING The Pulse Sensor AT VOLTAGE LESS THAN THE BOARD VOLTAGE,
   // UN-COMMENT THE NEXT LINE AND APPLY THAT VOLTAGE TO THE A-REF PIN
   //   analogReference(EXTERNAL);
   uint32_t when = millis();
-    //    while (!Serial) ;   //hangs a Leonardo until you connect a Serial
-    if (!Serial) delay(5000);           //allow some time for Leonardo
-    Serial.println("Serial took " + String((millis() - when)) + "ms to start");
-    //    tft.reset();                 //hardware reset
-    uint16_t ID = tft.readID(); //
-    Serial.print("ID = 0x");
-    Serial.println(ID, HEX);
-    if (ID == 0xD3D3) ID = 0x9481; // write-only shield
-//    ID = 0x9329;                             // force ID
-    tft.begin(ID);
-    tft.fillScreen(BLACK);
-    tft.setCursor(0, 0);
-    tft.setTextColor(WHITE);    tft.setTextSize(3);
-    tft.print("the BPM is: ");
+  //    while (!Serial) ;   //hangs a Leonardo until you connect a Serial
+  if (!Serial) delay(5000);           //allow some time for Leonardo
+  Serial.println("Serial took " + String((millis() - when)) + "ms to start");
+  //    tft.reset();                 //hardware reset
+  uint16_t ID = tft.readID(); //
+  Serial.print("ID = 0x");
+  Serial.println(ID, HEX);
+  if (ID == 0xD3D3) ID = 0x9481; // write-only shield
+  //    ID = 0x9329;                             // force ID
+  tft.begin(ID);
+  tft.fillScreen(GREEN);
+  tft.fillRect(0, 160, 240, 160, BLUE); //Clear lower half of screen
+  tft.setCursor(5, 10);
+  tft.setTextColor(BLACK);    tft.setTextSize(3);
+  tft.print("The BPM is: ");
+  previousMillis = millis();
 }
 
 
@@ -93,14 +114,26 @@ void loop()
 
   //ledFadeToBeat(); // Makes the LED Fade Effect Happen
   delay(20); //  take a break
+  currentMillis = millis();
+  if (currentMillis - previousMillis > 10000) {
+    strcpy_P(buffer, (char*)pgm_read_word(&(string_table[i])));
+    tft.setTextSize(2);
+    tft.setTextColor(WHITE);
+    tft.fillRect(0, 160, 240, 160, BLUE); //Clear lower half of screen
+    tft.setCursor(5, 170); //Set cursor to start of lower half
+    tft.println(buffer); //Some motivational shit here
+    previousMillis = currentMillis;
+    i=i+1;
+    if (i == 10) {
+      i = 0;
+    }
+    Serial.println(i);
+    delay(1000);
+  }
+  
 }
 
-//void ledFadeToBeat()
-//{
-  //fadeRate -= 15;                         //  set LED fade value
-  //fadeRate = constrain(fadeRate, 0, 255); //  keep LED fade value from going into negative numbers!
-  //analogWrite(fadePin, fadeRate);         //  fade LED
-//}
+
 
 void interruptSetup()
 {
@@ -132,11 +165,15 @@ void serialOutputWhenBeatHappens()
     Serial.print("BPM: ");
     Serial.println(BPM);
     //tft.fillScreen(BLACK);
-    tft.fillRect(120, 50, 60, 60, BLACK);
-    tft.setCursor(120, 50);
-    //tft.setTextColor(RED);    tft.setTextSize(2);
+    
+    tft.fillRect(90, 60, 80, 80, GREEN);
+    tft.setCursor(90, 60);
+    tft.setTextSize(4);
+    tft.setTextColor(RED);    
     //tft.print("the BPM is: ");
     tft.println(BPM);
+
+
   }
   else
   {
